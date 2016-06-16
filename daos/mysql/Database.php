@@ -1,7 +1,7 @@
 <?PHP
 
 namespace daos\mysql;
-    
+
 /**
  * Base class for database access -- mysql
  *
@@ -19,7 +19,7 @@ class Database {
      */
     static private $initialized = false;
 
-    
+
     /**
      * establish connection and
      * create undefined tables
@@ -30,18 +30,19 @@ class Database {
         if(self::$initialized===false && \F3::get('db_type')=="mysql") {
             \F3::get('logger')->log("Establish database connection", \DEBUG);
             \F3::set('db', new \DB\SQL(
-                'mysql:host=' . \F3::get('db_host') . ';port=' . \F3::get('db_port') . ';dbname='.\F3::get('db_database'),
+                'mysql:host=' . \F3::get('db_host') . ';port=' . \F3::get('db_port') . ';dbname='.\F3::get('db_database').';charset=utf8mb4',
                 \F3::get('db_username'),
                 \F3::get('db_password')
             ));
-            
+
+
             // create tables if necessary
             $result = @\F3::get('db')->exec('SHOW TABLES');
             $tables = array();
             foreach($result as $table)
                 foreach($table as $key=>$value)
                     $tables[] = $value;
-            
+
             if(!in_array(\F3::get('db_prefix').'items', $tables)) {
                 \F3::get('db')->exec('
                     CREATE TABLE '.\F3::get('db_prefix').'items (
@@ -59,7 +60,7 @@ class Database {
                         updatetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         author VARCHAR(255),
                         INDEX (source)
-                    ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
+                    ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
                 ');
                 \F3::get('db')->exec('
                     CREATE TRIGGER insert_updatetime_trigger
@@ -76,7 +77,7 @@ class Database {
                         END;
                 ');
             }
-            
+
             $isNewestSourcesTable = false;
             if(!in_array(\F3::get('db_prefix').'sources', $tables)) {
                 \F3::get('db')->exec('
@@ -90,11 +91,11 @@ class Database {
                         error TEXT,
                         lastupdate INT,
                 		lastentry INT
-                    ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
+                    ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
                 ');
                 $isNewestSourcesTable = true;
             }
-            
+
             // version 1 or new
             if(!in_array(\F3::get('db_prefix').'version', $tables)) {
                 \F3::get('db')->exec('
@@ -102,18 +103,18 @@ class Database {
                         version INT
                     ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
                 ');
-                
+
                 \F3::get('db')->exec('
                     INSERT INTO '.\F3::get('db_prefix').'version (version) VALUES (8);
                 ');
-                
+
                 \F3::get('db')->exec('
                     CREATE TABLE '.\F3::get('db_prefix').'tags (
                         tag         TEXT NOT NULL,
                         color       VARCHAR(7) NOT NULL
-                    ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
+                    ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
                 ');
-                
+
                 if($isNewestSourcesTable===false) {
                     \F3::get('db')->exec('
                         ALTER TABLE '.\F3::get('db_prefix').'sources ADD tags TEXT;
@@ -123,7 +124,7 @@ class Database {
             else{
                 $version = @\F3::get('db')->exec('SELECT version FROM '.\F3::get('db_prefix').'version ORDER BY version DESC LIMIT 0, 1');
                 $version = $version[0]['version'];
-                
+
                 if(strnatcmp($version, "3") < 0){
                     \F3::get('db')->exec('
                         ALTER TABLE '.\F3::get('db_prefix').'sources ADD lastupdate INT;
@@ -190,7 +191,7 @@ class Database {
                     ');
 				}
             }
-            
+
             // just initialize once
             self::$initialized = true;
         }
@@ -198,8 +199,8 @@ class Database {
         $class = 'daos\\' . \F3::get('db_type') . '\\Statements';
         $this->stmt = new $class();
     }
-    
-    
+
+
     /**
      * optimize database by
      * database own optimize statement
